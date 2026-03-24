@@ -1,0 +1,124 @@
+---
+title: "Week 6 Network Analysis"
+author: "Benjamin Bravo"
+date: "2026-03-23"
+output: pdf_document
+---
+
+```{r}
+install.packages("igraph")
+library(igraph)
+```
+
+```{r}
+pokemon_data_data <- data.frame(
+  pokemon_data = c(
+    "Pikachu","Charizard","Charizard","Blastoise","Venusaur",
+    "Gyarados","Gyarados","Lapras","Snorlax","Dragonite",
+    "Dragonite","Gengar","Alakazam","Machamp","Jolteon",
+    "Vaporeon","Flareon","Onix","Aerodactyl","Articuno",
+    "Zapdos","Moltres"
+  ),
+  type = c(
+    "Electric","Fire","Flying","Water","Grass",
+    "Water","Flying","Water","Normal","Dragon",
+    "Flying","Ghost","Psychic","Fighting","Electric",
+    "Water","Fire","Rock","Flying","Ice",
+    "Electric","Fire"
+  )
+)
+```
+
+This creates a dataset where each row represents a relationship between a Pokémon and its type. The pokemon_data column contains the names of Pokémon, and the type column contains their corresponding types. This structure forms the basis of a bipartite network because it connects two different groups.
+
+```{r}
+g <- graph_from_data_frame(pokemon_data_data, directed = FALSE)
+```
+
+This converts the dataset into a network graph where nodes represent Pokémon and types, and edges represent their relationships. The argument directed = FALSE means the connections do not have a direction. This creates an undirected network suitable for this analysis.
+
+```{r}
+V(g)$type <- V(g)$name %in% pokemon_data$pokemon
+```
+
+This line assigns each node to one of the two groups in the bipartite network. If a node name appears in the Pokémon column, it is labeled as a Pokémon; otherwise, it is labeled as a type. This distinction is necessary for correctly identifying the two-mode network structure.
+
+```{r}
+is_bipartite(g)
+```
+
+This function checks whether the network is truly bipartite, meaning connections only occur between the two groups. It returns TRUE if the structure is correct. This step confirms that the dataset meets the assignment requirements.
+
+```{r}
+V(proj$proj1)$name
+V(proj$proj2)$name
+```
+
+These lines display the names of the nodes in each projected network. The first line shows all node names in proj1, and the second shows all node names in proj2. This helps you identify which projection contains Pokémon (e.g., Pikachu, Charizard) and which contains types (e.g., Fire, Water), so you can choose the correct network for your analysi
+
+```{r}
+pokemon_data_net <- proj$proj2
+```
+
+This line selects the Pokémon-only network from the bipartite projection and stores it as pokemon_data_net. The object proj contains two networks: one for each group, and proj2 is the version where Pokémon are connected to other Pokémon based on shared types. This allows us to analyze relationships between Pokémon directly instead of between Pokémon and types.
+
+
+```{r}
+E(pokemon_data_net)$weight
+```
+
+This shows the strength of each connection between Pokémon in the projected network. The weight represents how many types two Pokémon share. Higher values indicate stronger relationships.
+
+```{r}
+strong_net <- delete_edges(pokemon_data_net, E(pokemon_data_net)[weight < 2])
+```
+
+This removes weaker connections from the network by deleting edges with weights less than 2. This is an example of the island method, which focuses only on strong ties. The result is a simplified network highlighting the most meaningful relationships.
+
+```{r}
+plot(strong_net,
+     vertex.size = 10,
+     vertex.label.cex = 0.8,
+     main = "Reduced Pokémon Network (Island Method)")
+```
+
+```{r}
+deg <- degree(pokemon_data_net)
+
+pokemon_data_degree <- data.frame(
+  pokemon_data = names(deg),
+  Degree = deg
+)
+
+pokemon_data_degree <- pokemon_data_degree[order(-pokemon_data_degree$Degree), ]
+
+pokemon_data_degree
+```
+
+This calculates the degree centrality for each Pokémon in the network. Degree centrality measures how many connections each node has. Higher values indicate more connected and potentially more important nodes. This converts the degree centrality results into a readable table format. Each row shows a Pokémon and its number of connections. This makes it easier to analyze and present the results.
+
+```{r}
+deg_strong <- degree(strong_net)
+
+strong_degree <- data.frame(
+  pokemon_data = names(deg_strong),
+  Degree = deg_strong
+)
+
+strong_degree <- strong_degree[order(-strong_degree$Degree), ]
+
+strong_degree
+```
+This sorts the table in descending order based on degree centrality. The Pokémon with the highest number of connections appear at the top. This helps quickly identify the most central nodes in the network.This also calculates degree centrality again, but only for the reduced network after filtering. It highlights which Pokémon remain most connected among the strongest relationships. This provides insight into the core structure of the network.
+
+
+
+## Conclusion
+
+This project constructed a bipartite network connecting Pokémon to their respective types, ensuring that ties exist only between two distinct groups. Using bipartite projection, the network was transformed into a Pokémon-to-Pokémon network where connections represent shared types. The island method was applied by removing weaker ties, keeping only strong connections based on shared attributes.
+
+The reduced network revealed clear clusters of Pokémon grouped by dominant types, such as Fire and Water. Dual-type Pokémon played an important role as bridges between clusters, increasing network connectivity. Additionally, certain types such as Water and Flying acted as hubs, connecting many Pokémon and shaping the overall structure of the network.
+
+Degree centrality analysis further supports the structure of the network by identifying the most connected Pokémon. Pokémon with dual types or common types, such as Water and Flying, tend to have higher degree centrality, indicating that they share characteristics with many other Pokémon. After applying the island method, only the strongest connections remain, and high-degree Pokémon represent the core of tightly connected groups. This demonstrates that both shared attributes and frequency of those attributes play a critical role in determining node importance within the network.
+
+Overall, the analysis demonstrates that shared characteristics (types) strongly influence the formation of communities, and that filtering weaker ties allows for a clearer understanding of the core relationships within the network.
